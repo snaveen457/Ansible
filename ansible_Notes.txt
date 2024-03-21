@@ -1,0 +1,669 @@
+ansible notes
+-------------
+
+ansible all -m ping            for checking connectivity to host machines
+
+
+ansible-doc -l       for seeing core modules
+
+ansible-doc yum    it will show yum module total information
+
+ansible all -m ping -o   it will display output in single line
+
+[defaults]
+interpreter_python = /usr/bin/python2  you need to update at sudo vim /etc/ansible/ansible.cfg you are geeting any waring while checking connectivity.
+
+ansible all -b -m yum -a "name=vim"     -b= become as root  -m= module   -a=attribute to install vim packeage
+using shell  we can execute linux commands
+ansible all -b -m shell -a "uptime"    to checking when server is loged in
+ansible all -b -m shell -a "date" 
+
+ansible all -b -m shell -a "cat /etc/*release"  to checking distribution name redhat or waht
+ansible all -b -m shell -a "uname"   to checking os 
+ansible all -b -m shell -a "df -h"  to check memory
+
+
+ansible all -b -m yum -a "name=httpd state=present"   to insatll httpd package using yum module
+ansible all -b -m yum -a "name=httpd state=absent"     to delete httpd package using yum module
+ansible all -b -m service -a "name=httpd state=started"   to service statrt
+ansible all -b -m copy -a "src=test.txt dest=/tmp/test.txt"  copt the file
+
+**************************************************************************************************************
+ansible all -m setup  it will give all ansible details
+
+using ping module
+--------------------
+
+vim 01pingserver.yml
+
+---
+- hosts: all
+  become: yes
+  tasks:
+  - name: Ping Servers
+    ping:
+...
+
+ansible-playbook pingserver.yml                         to execute playbook
+ansible-playbook pingserver.yml  --syntax-check         to checking syntax of playbook
+ansible-playbook pingserver.yml  --check                to do dry run it means actually it is not going to install, just it is going to validate whether we can install or not.
+***********************************************************************************************************************************************************
+using file module
+-----------------------
+
+vim 02createFile.yml
+
+---
+- hosts: all
+  become: true                 ---->      it will become root permissions
+  tasks:
+  - name: create a file
+    file:                      ----->   using file module
+     path: /tmp/naveen.sh     -----> create file using path must and should required
+     mode: 0777               ------>  giving full permissions
+     owner: ec2-user          ------>   changing owner permissions
+     group: ec2-user          ----->    changing group permissions
+     state: touch             ----->  using touch editor to create file
+...
+
+ansible-playbook 02createFile.yml    using this we can execute playbook
+
+
+mode: 1777  --> 1 is a stickybit, stickybit is a securitybit, others will not delete any thing.
+****************************************************************************************************************************
+playbook can contain n number of plays
+each play can contain number of tasks
+ 
+using (yum) and (service) module
+----------------------------
+
+vim 03installAppacheHTTPServer.yml
+
+---
+- hosts: all
+  become: true
+  tasks:
+  - name: install Appcche HTTP Server
+    yum:                              ---> using yum module we can install/uninstall software
+     name: httpd                      ---->using name we need to mention s/w name
+     state: latest                    ----> using state we can mention s/w versions current or latest
+  - name: start Appache HTTP Server
+    service:                         ----> using service module we can start or stop the service for s/w
+     name: httpd                     ----->  mention name of the service
+     state: started                  ------>  using state we can stated/abscent/delete 
+     enabled: true    
+...
+
+ansible-playbook 03installAppacheHTTPServer.yml     using this we can execute playbook
+*********************************************************************************************************************************
+Q) appche server in which directory we will deploy if any static file?
+A) we are going to deploy in /var/www/html
+_________________________________________________________________________________
+
+using copy module
+-------------------
+
+vim 04installAppcheHTTpServerwithcopymodule.yml 
+
+---
+- hosts: all
+  become: true
+  tasks:
+  - name: install Appcche HTTP Server
+    yum: 
+     name: httpd
+     state: latest
+  - name: copy index.html file   ---> copying the file
+    copy:                        -----> using copy module we can copy the files
+     src: index.html             -----> using src we need to give source location
+     dest: /var/www/html/index.html   ----> using dest we can give destination location
+  - name: start Appache HTTP Server
+    service:
+     name: httpd
+     state: started
+     enabled: true
+...
+
+ansible-playbook 04installAppcheHTTpServerwithcopymodule.yml   using this we can execute playbook
+
+
+vi 05installApacheHTTPServerwithcopy.yml
+
+---
+- hosts: all
+  become: true
+  vars:
+   companyname: MithunTechnologies
+   location: bangalore
+  tasks:
+  - name: install Appcche HTTP Server
+    yum: 
+     name: httpd
+     state: latest
+  - name: copy index.html file   
+    copy:                        
+     src: index.html             
+     dest: /var/www/html/index.html   
+  - name: start Appache HTTP Server
+    service:
+     name: httpd
+     state: started
+     enabled: true
+...
+
+vi index.html
+<h1>welcome to {{companyname}} location is {{location}} </h1>  we are hardcoded values in playbook using vars
+
+ansible-playbook installApacheHTTPServerwithcopy.yml   we can execute playbook it will copy the content and what we updated in index.html same it shows it.
+
+ my requirement to get that values comapnyname and location from index.html but copy module it will not work instead of copy module we can use template module.
+
+*************************************************************************************************************
+
+using template module
+---------------------
+
+vi 06installApacheHTTPServerwithtemplate.yml
+
+
+---
+- hosts: all
+  become: true
+  vars:
+   companyname: MithunTechnologies
+   location: bangalore
+  tasks:
+  - name: install Appcche HTTP Server
+    yum: 
+     name: httpd
+     state: latest  
+  - name: start Appache HTTP Server
+    service:
+     name: httpd
+     state: started
+     enabled: true
+  - name: copy index.html file   
+    template:                        
+     src: index.html             
+     dest: /var/www/html/index.html   
+...
+
+ansible-playbook installApacheHTTPServerwithtemplate.yml   we can execute playbook using template it will get vars values from playbook
+
+variable values we can pass the dyanamically? eventhough in playbook we updated variable values?
+yes it is possiblle. --extra-vars variablename=value  variablename=value
+
+ansible-playbook installApacheHTTPServerwithtemplate.yml --extra-vars companyname=Mss                                 using single value
+
+ansible-playbook installApacheHTTPServerwithtemplate.yml --extra-vars "companyname=Mss location=hydrabad"             using multiple values.
+
+***************************************************************************************************************************************************
+
+using debug module
+------------------
+vi 07debugmodule.yml
+
+---
+- hosts: all
+  vars: 
+   name: MithunTechnologies
+
+  tasks:
+  - name: display the name variable value
+    debug:
+     msg: "the variable name value is: {{name}}"
+...
+
+ansible-playbook debugmodule.yml                             while execute playbook it will display variable values using "msg"
+ansible-playbook debugmodule.yml --extra-vars name= mss      while execute playbook it will display variable values dynamically using "msg"
+
+
+vi 07debugmodule1.yml
+---
+- hosts: all
+  vars: 
+   name: MithunTechnologies
+
+  tasks:
+  - name: display the name variable value
+    debug:
+     var: name
+...
+
+ansible-playbook debugmodule.yml --extra-vars name= mss      while execute playbook it will display variable values dynamically using "var"
+
+msg---> customized message that is printed like      msg: "the variable name value is: {{name}}"
+
+var---> variable name to debug  like                  var: name
+                    
+***************************************************************************************************************************************
+
+
+Handelers
+----------
+Handlers are the specified tasks which will run the end of the play if notified by the another task.
+
+vi 08installHTTPServerwithHandler.yml
+
+---
+- hosts: all
+  become: true
+  vars:
+    companyname: MithunTechnologies
+    location: bangalore
+  tasks:
+    - name: install Apache HTTP Server
+      yum:
+        name: httpd
+        state: latest
+
+    - name: copy index.html file
+      template:
+        src: index.html
+        dest: /var/www/html/index.html
+      notify:
+        - Re-start the Apache HTTP Server
+
+  handlers:
+    - name: Re-start the Apache HTTP Server
+      service:
+        name: httpd
+        state: restarted
+        enabled: true
+...
+
+
+ansible-playbook 08installHTTPServerwithHandler.yml  when we changes are happpend in index.html this playbook will be restatrd
+
+ansible-playbook 08installHTTPServerwithHandler.yml --extra-vars "companyname=Mss location=hydrabad" 
+*************************************************************************************************************************************
+
+
+variables
+----------
+
+vi 09variables.yml
+
+companyname: MSS
+location: HYD
+
+
+
+vi 09variablesdemo.yml
+
+
+---
+- hosts: all
+  become: true
+  vars_file:
+   - 09variables.yml
+
+  tasks:
+    - name: install Apache HTTP Server
+      yum:
+        name: httpd
+        state: latest
+
+    - name: copy index.html file
+      template:
+        src: index.html
+        dest: /var/www/html/index.html
+      notify:
+        - Re-start the Apache HTTP Server
+
+  handlers:
+    - name: Re-start the Apache HTTP Server
+      service:
+        name: httpd
+        state: restarted
+        enabled: true
+...
+
+ansible-playbook 09variablesdemo.yml    using variables we can execute 
+
+1) variables inside the playbook
+2) created the variables in another playbook, that one we are accessing from the playbook.
+
+ansible-playbook 09variablesdemo.yml --extra-vars "companyname=Mss location=hydrabad"
+
+devenv
+-------
+
+vi 09dev_vars.yml
+
+companyname: MSS_dev
+location: HYD_dev
+
+
+prodenv
+---------
+
+vi 09prod_vars.yml
+
+companyname: MSS_prod
+location: HYD_prod
+
+
+vi 09varsfilesdemo.yml
+
+---
+- hosts: all
+  become: true
+  vars:
+   env: 09dev             ----> bydefault it will take dev env
+  vars_files:
+   - "{{ env }}_vars.yml"
+
+  tasks:
+    - name: install Apache HTTP Server
+      yum:
+        name: httpd
+        state: latest
+
+    - name: copy index.html file
+      template:
+        src: index.html
+        dest: /var/www/html/index.html
+      notify:
+        - Re-start the Apache HTTP Server
+
+  handlers:
+    - name: Re-start the Apache HTTP Server
+      service:
+        name: httpd
+        state: restarted
+        enabled: true
+
+ansible-playbook 09varsfilesdemo.yml --extra-vars env=09dev
+ansible-playbook 09varsfilesdemo.yml --extra-vars env=09prod
+
+***********************************************************************************************************************
+
+Group variables
+---------------
+
+create a yml file in /etc/ansible/group_vars
+
+sudo mkdir /etc/ansible/group_vars
+
+sudo vi /etc/ansible/group_vars/appservers.yml
+JavaPackageVersion: java-1.7.0-openjdk
+
+sudo vi /etc/ansible/group_vars/dbservers.yml
+JavaPackageVersion: java-1.8.0-openjdk
+
+
+
+appservers.yml
+
+dbservers.yml
+
+webservers.yml
+
+vi 10installJava.yml
+
+---
+- hosts: all
+  become: true
+  tasks:
+    - name: install java
+      yum: 
+        name: "{{ JavaPackageVersion }}"
+
+    - name: get the java JavaPackageVersion
+      shell: java -version 2>&1 | grep version | awk '{print $3}' | sed 's/"//g'
+      register: javaVersion
+
+    - name: Display java version
+      debug:
+        var: javaVersion.stdout
+
+...
+
+HostVariabls
+-------------
+
+sudo vi /etc/ansible/host_vars/172.31.34.56.yml
+
+sudo vi /etc/ansible/host_vars/172.31.37.129.yml
+
+runtime values  --> variables in ansible playbook/variable files -->host-->group-->all.yml
+************************************************************************************************************************************
+
+loops
+--------
+
+vi 11loops.yml
+
+---
+- hosts: all
+  become: true
+  tasks:
+  - name: install Git
+    yum:
+      name: git
+      state: present
+  - name: install HTTPD server
+    yum:
+      name: httpd
+      state: present
+  - name: install tree
+    yum:
+      name: tree
+      state: present
+  - name: install unzip
+    yum:
+      name: unzip
+      state: present
+...
+
+ansible-playbook 11loops.yml --syntax-check
+ansible-playbook 11loops.yml 
+
+vi 11loops1.yml
+---------------
+---
+- hosts: all
+  become: true
+  tasks:
+   - name: install list of packages
+     yum: name="{{item}}" state=present
+     with_items:
+      - git
+      - httpd
+      - zip
+      - unzip
+      - nano
+      - wget
+...
+
+
+vi 11loops2.yml
+---------------
+
+---
+- hosts: all
+  become: true
+  tasks:
+   - name: install list of packages
+     yum:
+       name: ['git', 'httpd', 'zip', 'unzip', 'nano', 'wget']
+     
+...
+
+vi 12usercreate.yml
+-------------------
+
+--- 
+- hosts: all
+  become: true
+  tasks:
+   - name: create users
+     user:
+       name="{{item}}"
+       create_home=yes   --> mandatory need this one
+     with_items:
+      - naveen
+      - princy
+...
+
+vi 12usercreate1.yml
+----------------------
+
+---
+- hosts: all
+  become: true
+  tasks: 
+   - name: create users
+     user:
+       name: "{{item.username}}"
+       create_home: "{{createhome}}"
+     with_items:
+      - {'username': 'prince', 'createhome': no}
+      - {'username': 'john', 'createhome': yes}
+      - {'username': 'pawan', 'createhome': yes}
+      - {'username': 'honey', 'createhome': no}
+...
+
+---
+- hosts: all
+  become: true
+  tasks:
+    - name: create users
+      user:
+        name: "{{ item.username }}"
+        create_home: "{{ item.createhome }}"
+      loop:
+        - { username: 'prince', createhome: 'no' }
+        - { username: 'john', createhome: 'yes' }
+        - { username: 'pawan', createhome: 'yes' }
+        - { username: 'honey', createhome: 'no' }
+
+****************************************************************************************
+conditional statement
+---------------------
+ 
+vi 13conditional.yml
+-------------------
+---
+- hosts: all
+  become: true
+  gather_facts: yes
+  tasks:
+   - name: install tree on redhat server
+     yum:
+      name: tree
+      state: present
+     when: ansible_os_family == "RedHat"
+   - name: install tree on ubuntu server
+     apt:
+      name: tree
+      state: present
+     when: ansible_os_family == "Debian"
+...
+
+
+
+
+vi 14installgitifnotinstalled.yml
+
+---
+- hosts: all
+  become: true
+  tasks:
+   - name: Get Git version
+     shell: git --version
+     register: gitversion
+     ignore_errors: yes
+   - name: Displaying message whether git is installed or not?
+     when: gitversion.stdout == ""   
+     debug:
+      msg: "Git is not installed"
+   - name: installing Git
+     when: gitversion.stdout == ""                                it is equal to means git is not installed
+     yum:
+      name: git
+      state: present
+   - name: Get git version
+     shell: git --version
+     register: gitversion
+   - name: Display git version
+     when: gitversion.stdout != ""                                  it is not equal to means git is installed
+     debug:
+     msg: "Git is installed and version is {{gitversion.stdout}}"
+...
+
+********************************************************************************************************************************
+
+
+Ansible Roles
+-------------
+
+Ansible roles == Modules in puppet and chef
+
+ansible-galaxy init <Ansiblerolename>            it will create ansible role, once creted role it will maintain standard default structure
+
+it will maintain one defaults
+                     --main.yml
+                    file
+                    handlers
+                      main.yml
+                    templates
+                    vars
+                      main.yml       we don't want create directory structure manually once crete role it will automatically create it
+ 
+
+
+---
+- hosts: all
+  become: true
+  roles:
+   - appacheHTTPserver
+...
+
+
+******************************************************************************************
+
+static inventory
+----------------
+all the host ip/hostname in /etc/ansible/hosts manually we are doing
+
+Dynamic Inventory
+------------------
+all the host information get dynamically
+
+Dynamic inventory is ascript  {pythonscript/yaml/shell script} these scripts will get the hosts info dynamically from AWS/AZURE/GCP / database
+
+
+pre Requirisites
+--------------------
+ Botocore/Boto3   ===> python SDK for AWS
+
+
+ansible-playbook     ---> if i want to run a playbook 
+
+ansible-galaxy       ---> if i want to create the roles
+
+ansible-vault        ---> if i want to encrypt the yaml files
+
+ansible-inventory     ---> if i want get the host inventory
+
+ansible-inventory --graph -i dynamicinventory_aws_ec2.yml
+
+-i (or) --inventory file
+
+pip-- python installer program
+
+pip3 install boto3 --user --->install boto3
+
+ansible all -i dynamicinventory_aws_ec2.yml -m ping
+
+
+git token : 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
+
+*******************************************************************
+
+
+
+
+

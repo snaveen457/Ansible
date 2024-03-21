@@ -1,0 +1,26 @@
+---
+- hosts: all
+  become: true
+  vars:
+    companyname: MithunTechnologies
+    location: bangalore
+  tasks:
+    - name: install Apache HTTP Server
+      yum:
+        name: httpd
+        state: latest
+
+    - name: copy index.html file
+      template:
+        src: index.html
+        dest: /var/www/html/index.html
+      notify:
+        - Re-start the Apache HTTP Server
+
+  handlers:
+    - name: Re-start the Apache HTTP Server
+      service:
+        name: httpd
+        state: restarted
+        enabled: true
+...

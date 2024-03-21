@@ -1,0 +1,10 @@
+---
+- hosts: all
+  become: true
+  tasks:
+   - name: install list of packages
+     yum:
+       name: ['git', 'httpd', 'zip', 'unzip', 'nano', 'wget']
+     
+...
+

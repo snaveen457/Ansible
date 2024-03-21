@@ -1,0 +1,17 @@
+---
+- hosts: all
+  become: true
+  gather_facts: yes
+  tasks:
+   - name: install tree on redhat server
+     yum:
+      name: tree
+      state: present
+     when: ansible_os_family == "RedHat"
+   - name: install tree on ubuntu server
+     apt:
+      name: tree
+      state: present
+     when: ansible_os_family == "Debian"
+...
+

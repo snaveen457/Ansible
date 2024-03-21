@@ -1,0 +1,14 @@
+---
+- hosts: all
+  become: true
+  tasks:
+  - name: install Appcche HTTP Server
+    yum: 
+     name: httpd
+     state: latest
+  - name: start Appache HTTP Server
+    service:
+     name: httpd  
+     state: started
+     enabled: true    
+...

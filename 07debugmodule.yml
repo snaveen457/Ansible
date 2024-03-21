@@ -1,0 +1,11 @@
+---
+- hosts: all
+  vars: 
+   name: MithunTechnologies
+
+  tasks:
+  - name: display the name variable value
+    debug:
+     msg: "the variable name value is: {{name}}"
+...
+

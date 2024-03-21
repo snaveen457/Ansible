@@ -1,0 +1,29 @@
+---
+- hosts: all
+  become: true
+  tasks:
+    - name: Get Git version
+      shell: git --version
+      register: gitversion
+      ignore_errors: yes
+
+    - name: Displaying message whether git is installed or not?
+      debug:
+        msg: "Git is not installed"
+      when: gitversion.stdout == ""
+
+    - name: installing Git
+      yum:
+        name: git
+        state: present
+      when: gitversion.stdout == ""
+
+    - name: Get git version
+      shell: git --version
+      register: gitversion
+
+    - name: Display git version
+      debug:
+        msg: "Git is installed and version is {{ gitversion.stdout }}"
+      when: gitversion.stdout != ""
+
